@@ -1,0 +1,334 @@
+
+-- High Distinction database project, Semester Autumn, 2020
+-- Jiankun Li, 11840131@student.uts.edu.au, 11840131
+-- URL for the website, https://www.transitsystems.com.au/nsw-timetables-index
+--
+-- The database is about the bus routes in certain region in Sydney, each route passes 
+--different stops every day. The database shows totally seven bus routes and the stops 
+--they pass through, and also shows the nearest trains the customers can transfer to.
+--It also shows the intersection of two routes, which means the customer can change from 
+--one route to another route. 
+--Moreover, there is a table contains customer's details and balance in their opal card. 
+--There is another table shows the history about which route the customer took before.
+
+
+
+DROP table Route;
+DROP table BusStop;
+DROP table Stop;
+DROP table Timetable;
+DROP table TrainTransfer;
+DROP table Customer;
+DROP table History;
+
+
+Create table Route
+(
+	RouteNo		TEXT	NOT NULL,
+	RouteStart	TEXT	NOT NULL,
+	RouteFinish	TEXT	NOT NULL,
+	NumberofStop	integer		NOT NULL,
+	NextRoute	TEXT,
+
+	CONSTRAINT RoutePK PRIMARY KEY (RouteNo),
+
+	CONSTRAINT Route_NumberofStop CHECK (NumberofStop > 0 AND 
+			NumberofStop < 100)
+);
+
+Create table Stop
+(
+	StopID		integer	NOT NULL,
+	StopName	TEXT	NOT NULL,
+	Suburb		TEXT 	NOT NULL,
+
+	CONSTRAINT StopPK PRIMARY KEY (StopID)
+
+);
+
+Create table BusStop
+(
+	RouteNo		TEXT,
+	StopID		integer,
+
+	CONSTRAINT BusStopPK PRIMARY KEY (RouteNo, StopID),
+
+	CONSTRAINT BusStopFK_RouteNo FOREIGN KEY (RouteNo) REFERENCES Route,
+	--ON DELETE CASCADE
+  	--ON UPDATE CASCADE,
+
+	CONSTRAINT BusStopFK_StopID FOREIGN KEY (StopID) REFERENCES Stop
+	--ON DELETE CASCADE
+  	--ON UPDATE CASCADE
+);
+
+Create table TrainTransfer
+(
+	RouteNo		TEXT,
+	Station		TEXT,
+	StationSuburb	TEXT,
+
+	CONSTRAINT TrainTransferPK PRIMARY KEY (RouteNo, Station),
+
+	CONSTRAINT TrainTransferFK FOREIGN KEY (RouteNo) REFERENCES Route
+);
+
+Create table Timetable
+(
+	RouteNo		TEXT,
+	StopID		integer,
+	Day		TEXT,	-- weekdays, Saturday, Sunday and Public Hoildays
+	TimeStart		TEXT,
+	TimeFinish		TEXT,
+	Frequency		integer		NOT NULL,	-- how many times of route during the working hours
+	
+	CONSTRAINT TimetablePK PRIMARY KEY (RouteNo, StopID, Day),
+	
+	CONSTRAINT TimetableFK_RouteNo FOREIGN KEY (RouteNo) REFERENCES Route,
+		--ON DELETE CASCADE
+  		--ON UPDATE CASCADE,
+
+	
+	CONSTRAINT TimetableFK_StopID FOREIGN KEY (StopID) REFERENCES Stop,
+		--ON DELETE CASCADE
+  		--ON UPDATE CASCADE,
+
+
+	CONSTRAINT Timetable_Day CHECK (Day IN(
+		'Weekdays', 	-- Mon to Fri
+		'Saturday',		
+		'PH'		-- Sunday and Pubulic holidays
+		)),
+
+	CONSTRAINT Timetable_Frequency CHECK (Frequency > 0 AND Frequency < 150)
+
+);
+
+
+Create table Customer
+(
+	CustomerID	integer	NOT NULL,
+	Name		TEXT	NOT NULL,
+	MobileNo		integer,
+	Balance		NUMERIC		NOT NULL,	-- balance in opal card
+
+	CONSTRAINT CustomerPK PRIMARY KEY (CustomerID)
+);
+
+
+
+
+
+-- The history of customer about the route the customer took before
+Create table History
+(
+	RouteNo		TEXT,
+	CustomerID	integer,
+	Charge		DECIMAL(2,1),	--Charge for this bus
+	time		integer,
+
+	CONSTRAINT HistoryPK PRIMARY KEY (RouteNo, CustomerID),
+
+	CONSTRAINT HistoryFK_RouteNo FOREIGN KEY (RouteNo) REFERENCES Route,
+	--ON DELETE RESTRICT
+  	--ON UPDATE CASCADE,
+
+	CONSTRAINT HistoryFK_CustomerID FOREIGN KEY (CustomerID) REFERENCES Customer
+	--ON DELETE CASCADE
+  	--ON UPDATE CASCADE
+);
+
+
+INSERT INTO Route VALUES('305', 'ORiordan St before King St', 'Gibbons St Stand B', '17', null);
+INSERT INTO Route VALUES('308', 'Smidmore St', 'Smidmore St', '46', null);
+INSERT INTO Route VALUES('389', 'Grafton St Stand R', 'Pirrama Rd', '27', null);
+INSERT INTO Route VALUES('407', 'Westfield Burwood Burwood Rd', 'Albert Rd, Stand H', '29', '408');
+INSERT INTO Route VALUES('408', 'Necropolis Cct at William Dr', 'Westfield Burwood Victoria St', '29', '407');
+INSERT INTO Route VALUES('418', 'Dacey Gardens Gardeners Rd', 'Westfield Burwood Victoria St', '61', '425');
+INSERT INTO Route VALUES('425', 'Princes Hwy opp Fanning St', 'Marrickville Rd before New Canterbury Rd', '15', '418');
+
+-- 305
+INSERT INTO Stop VALUES(202057, 'ORiordan St before King St', 'Mascot');
+INSERT INTO Stop VALUES(202059, 'Coward St before Kent Rd', 'Mascot');	-- Mascot station
+INSERT INTO Stop VALUES(201544, '75 Bourke Rd', 'Alexandria');
+INSERT INTO Stop VALUES(201549, 'Maddox St after Bourke Rd', 'Alexandria');
+INSERT INTO Stop VALUES(201578, 'McEvoy St at Wyndham St', 'Alexandria');
+INSERT INTO Stop VALUES(201646, 'Gibbons St Stand B', 'Redfern');			-- Redfern station
+
+-- 308
+INSERT INTO Stop VALUES(220411, 'Smidmore St', 'Marrickville');
+INSERT INTO Stop VALUES(204311, 'King St at Concord St', 'Erskineville');		-- St Peters Station
+INSERT INTO Stop VALUES(204316, 'Erskineville Oval Mitchell Rd', 'Erskineville');	-- Erskineville Station
+INSERT INTO Stop VALUES(201572, 'Mitchell Rd opp Fountain St', 'Erskineville');
+--INSERT INTO Stop VALUES(201646, 'Gibbons St Stand B', 'Redfern');		-- Redfern Station
+INSERT INTO Stop VALUES(201016, 'Chalmers St Stand G', 'Sydney');		-- Central Station
+
+-- 389
+INSERT INTO Stop VALUES(202281, 'Grafton St Stand R', 'Bondi Junction');	--Bondi Junction Station
+INSERT INTO Stop VALUES(202522, 'Ocean St at Queen St', 'Woollahra');
+INSERT INTO Stop VALUES(201017, 'Bourke St at Liverpool St', 'Paddington');	
+INSERT INTO Stop VALUES(2000425, 'Park St Stand J', 'Sydney');		-- Town Hall Station
+INSERT INTO Stop VALUES(200912, 'Harris St at John St', 'Pyrmont');
+INSERT INTO Stop VALUES(200919, 'Marquee Sydney Pirrama Rd', 'Pyrmont');
+
+-- 407
+INSERT INTO Stop VALUES(213433, 'Westfield Burwood Burwood Rd', 'Burwood');	-- 408/418
+INSERT INTO Stop VALUES(213425, 'Burwood Rd Stand H', 'Burwood');		-- Burwood Stn
+INSERT INTO Stop VALUES(213465, 'Railway Pde Stand D', 'Burwood');		-- 408
+INSERT INTO Stop VALUES(2135118, 'Barker Rd at Marion St', 'Strathfield');	
+INSERT INTO Stop VALUES(2135162, 'Dickson St at Albert Rd', 'Strathfield');
+INSERT INTO Stop VALUES(213515, 'Albert Rd Stand H', 'Strathfield');		-- Strathfield Stn/408
+
+-- 408
+INSERT INTO Stop VALUES(2141281, 'Necropolis Cct at William Dr', 'Rookwood');
+INSERT INTO Stop VALUES(214175, 'Necropolis Dr opp Hawthorne Ave', 'Rookwood');
+INSERT INTO Stop VALUES(214021, ' Flemington Stn The Crescent', 'Homebush West');	-- Flemington Station
+INSERT INTO Stop VALUES(214027, 'Homebush Stn The Crescent', 'Homebush');		--Homebush Stn
+--INSERT INTO Stop VALUES(213515, 'Albert Rd Stand H', 'Strathfield');		-- Strathfield Stn/407
+INSERT INTO Stop VALUES(213464, 'Railway Pde Stand A', 'Burwood');		-- 407
+INSERT INTO Stop VALUES(213474, 'Westfield Burwood Victoria St', 'Burwood');	--407/418
+
+-- 418
+INSERT INTO Stop VALUES(203228, 'Dacey Garden Gardeners Rd', 'Daceyville');
+INSERT INTO Stop VALUES(203229, 'Burwood Rd Stand E', 'Burwood');	--Burwood Stn
+INSERT INTO Stop VALUES(219311, 'Floss St', 'Hurlstone Park');		--Hurlstone Park
+INSERT INTO Stop VALUES(204421, 'Burrows Ave Stand A', 'Sydenham');		-- Sydenham Stn/425
+INSERT INTO Stop VALUES(220485, 'Marrickville Rd opp Barclay St', 'Marrickville');	-- 425
+INSERT INTO Stop VALUES(202085, 'Bourke St Stand D', 'Mascot');		-- Mascot Stn
+INSERT INTO Stop VALUES(213146, 'Liverpool Rd Stand G', 'Ashfield');		--Ashfield Stn
+--INSERT INTO Stop VALUES(213474, 'Westfield Burwood Victoria St', 'Burwood');	--407/408
+
+--425
+INSERT INTO Stop VALUES(204452, 'Princes Hwy opp Fanning St', 'Tempe');
+--INSERT INTO Stop VALUES(204421, 'Burrows Ave Stand A', 'Sydenham');		-- Sydenham Stn/418
+--INSERT INTO Stop VALUES(220485, 'Marrickville Rd opp Barclay St', 'Marrickville');	-- 418
+INSERT INTO Stop VALUES(220490, 'Marrickville Rd at Darley St', 'Marrickville');	
+INSERT INTO Stop VALUES(220342, 'Marrickville Rd before New Canterbury Rd', 'Dulwich Hill');	
+
+--BusStop
+-- 305
+INSERT INTO BusStop VALUES('305', 202057);
+INSERT INTO BusStop VALUES('305', 202059);	
+INSERT INTO BusStop VALUES('305', 201544);
+INSERT INTO BusStop VALUES('305', 201549);
+INSERT INTO BusStop VALUES('305', 201578);
+INSERT INTO BusStop VALUES('305', 201646);
+			
+-- 308
+INSERT INTO BusStop VALUES('308', 220411);
+INSERT INTO BusStop VALUES('308', 204311);		
+INSERT INTO BusStop VALUES('308', 204316);	
+INSERT INTO BusStop VALUES('308', 201572);
+INSERT INTO BusStop VALUES('308', 201646);		
+INSERT INTO BusStop VALUES('308', 201016);		
+
+-- 389
+INSERT INTO BusStop VALUES('389', 202281);	
+INSERT INTO BusStop VALUES('389', 202522);
+INSERT INTO BusStop VALUES('389', 201017);	
+INSERT INTO BusStop VALUES('389', 2000425);		
+INSERT INTO BusStop VALUES('389', 200912);
+INSERT INTO BusStop VALUES('389', 200919);
+
+-- 407
+INSERT INTO BusStop VALUES('407', 213433);	
+INSERT INTO BusStop VALUES('407', 213425);		
+INSERT INTO BusStop VALUES('407', 213465);		
+INSERT INTO BusStop VALUES('407', 2135118);	
+INSERT INTO BusStop VALUES('407', 2135162);
+INSERT INTO BusStop VALUES('407', 213515);
+		
+-- 408
+INSERT INTO BusStop VALUES('408', 2141281);
+INSERT INTO BusStop VALUES('408', 214175);
+INSERT INTO BusStop VALUES('408', 214021);	
+INSERT INTO BusStop VALUES('408', 214027);		
+INSERT INTO BusStop VALUES('408', 213515);		
+INSERT INTO BusStop VALUES('408', 213464);		
+INSERT INTO BusStop VALUES('408', 213474);	
+
+-- 418
+INSERT INTO BusStop VALUES ('418', 203228);
+INSERT INTO BusStop VALUES ('418', 203229);	
+INSERT INTO BusStop VALUES ('418', 219311);		
+INSERT INTO BusStop VALUES ('418', 204421);		
+INSERT INTO BusStop VALUES ('418', 220485);	
+INSERT INTO BusStop VALUES ('418', 202085);		
+INSERT INTO BusStop VALUES ('418', 213146);		
+INSERT INTO BusStop VALUES ('418', 213474);	
+
+--425
+INSERT INTO BusStop VALUES ('425', 204452);
+INSERT INTO BusStop VALUES ('425', 204421);		
+INSERT INTO BusStop VALUES ('425', 220485);	
+INSERT INTO BusStop VALUES ('425', 220490);	
+INSERT INTO BusStop VALUES ('425', 220342);	
+
+
+INSERT INTO TrainTransfer VALUES('305', 'Mascot Station', 'Mascot');	
+INSERT INTO TrainTransfer VALUES('305', 'Redfern Station', 'Redfern');
+
+INSERT INTO TrainTransfer VALUES('308', 'St Peters Station', 'Erskineville');
+INSERT INTO TrainTransfer VALUES('308', 'Erskineville Station', 'Erskineville');
+INSERT INTO TrainTransfer VALUES('308', 'Redfern Station', 'Redfern');
+INSERT INTO TrainTransfer VALUES('308', 'Central Station', 'Sydney');	
+
+INSERT INTO TrainTransfer VALUES('389', 'Bondi Junction Station', 'Bondi Junction');	
+INSERT INTO TrainTransfer VALUES('389', 'Town Hall Station', 'Sydney');	
+
+INSERT INTO TrainTransfer VALUES('407', 'Burwood Station', 'Burwood');
+INSERT INTO TrainTransfer VALUES('407', 'Strathfield Station', 'Strathfield');
+
+INSERT INTO TrainTransfer VALUES('408', 'Flemington Station', 'Homebush West');
+INSERT INTO TrainTransfer VALUES('408', 'Homebush Station', 'Homebush');
+INSERT INTO TrainTransfer VALUES('408', 'Strathfield Station', 'Strathfield');
+
+INSERT INTO TrainTransfer VALUES('418', 'Burwood Station', 'Burwood');
+INSERT INTO TrainTransfer VALUES('418', 'Hurlstone Park Station', 'Hurlstone Park');
+INSERT INTO TrainTransfer VALUES('418', 'Sydenham Station', 'Sydenham');
+INSERT INTO TrainTransfer VALUES('418', 'Mascot Station', 'Mascot');
+INSERT INTO TrainTransfer VALUES('418', 'Ashfield Station', 'Ashfield');
+
+
+
+
+INSERT INTO Timetable VALUES('305', 202057, 'Weekdays', '1440', '1743', 7);
+INSERT INTO Timetable VALUES('305', 201646, 'Weekdays', '1504', '1811', 7);
+
+INSERT INTO Timetable VALUES('308', 220411, 'Weekdays', '0630', '2034', 38);
+INSERT INTO Timetable VALUES('308', 220411, 'Saturday', '0800', '1900', 23);
+INSERT INTO Timetable VALUES('308', 220411, 'PH', '0800', '1830', 17);
+
+INSERT INTO Timetable VALUES('389', 202281, 'Weekdays', '0457', '0055', 104);
+INSERT INTO Timetable VALUES('389', 202281, 'Saturday', '0540', '0020', 62);
+INSERT INTO Timetable VALUES('389', 202281, 'PH', '0709', '2320', 56);
+
+
+INSERT INTO Timetable VALUES('407', 213433, 'Weekdays', '0627', '1932', 24);
+INSERT INTO Timetable VALUES('407', 213433, 'Saturday', '0732', '1932', 13);
+INSERT INTO Timetable VALUES('407', 213433, 'PH', '0832', '1832', 11);
+
+INSERT INTO Timetable VALUES('408', 2141281, 'Weekdays', '0940', '1545', 7);
+INSERT INTO Timetable VALUES('408', 2141281, 'Saturday', '0930', '1530', 7);
+INSERT INTO Timetable VALUES('408', 2141281, 'PH', '0930', '1530', 7);
+
+INSERT INTO Timetable VALUES('418', 203228, 'Weekdays', '0552', '2330', 46);
+INSERT INTO Timetable VALUES('418', 203228, 'Saturday', '0722', '2330', 33);
+INSERT INTO Timetable VALUES('418', 203228, 'PH', '0744', '2222', 28);
+
+INSERT INTO Timetable VALUES('425', 204452, 'Weekdays', '0600', '1800', 19);
+INSERT INTO Timetable VALUES('425', 204452, 'Saturday', '0729', '1629', 10);
+
+
+
+INSERT INTO Customer VALUES(011, 'James', 0476238987, 50.8);
+INSERT INTO Customer VALUES(012, 'Davis', 0476235787, 70.8);
+INSERT INTO Customer VALUES(013, 'Chris', 0476290987, 30.3);
+
+
+INSERT INTO History VALUES('305', 011, 2.3, 3);
+INSERT INTO History VALUES('305', 013, 3.3, 5);
+INSERT INTO History VALUES('308', 011, 5.2, 6);
+INSERT INTO History VALUES('408', 012, 1.2, 7);
+INSERT INTO History VALUES('418', 013, 6.7, 8);
+INSERT INTO History VALUES('425', 012, 2.1, 1);
